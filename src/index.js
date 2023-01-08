@@ -5,9 +5,8 @@ const helmet = require("helmet");
 const cors = require("cors");
 require("dotenv").config();
 
+//initialize express
 const app = express();
-
-const PORT = process.env.PORT || 6022;
 
 // use package
 app.use(cors());
@@ -22,6 +21,7 @@ app.get("/", (req, res) => {
 });
 
 // server listening
+const PORT = process.env.PORT || 6022;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
