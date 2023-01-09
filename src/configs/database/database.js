@@ -1,4 +1,4 @@
-let Sequelize = require("sequelize"); //import sequelize
+const Sequelize = require("sequelize"); //import sequelize
 
 // import nama database, username database, passwort database, dialect, host
 let db = new Sequelize(
@@ -10,6 +10,16 @@ let db = new Sequelize(
     host: process.env.DB_HOST,
   }
 );
+
+db.authenticate()
+  .then(() => {
+    console.log(
+      "Connection to the database has been established successfully."
+    );
+  })
+  .catch((error) => {
+    console.error("Unable to connect to the database: ", error.message);
+  });
 
 // export database
 module.exports = db;
