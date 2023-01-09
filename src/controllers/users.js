@@ -2,7 +2,7 @@ const models = require("../configs/models/index"); //import model
 const controllerUsers = {}; //assign users controllers
 
 // post request
-controllerUsers.post = async function (req, res) {
+controllerUsers.post = async (req, res) => {
   // assign reques body
   const { username, password } = req.body;
   if (!(username && password)) {
