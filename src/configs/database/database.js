@@ -1,7 +1,7 @@
 const Sequelize = require("sequelize"); //import sequelize
 
 // import nama database, username database, passwort database, dialect, host
-let db = new Sequelize(
+const db = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USERNAME,
   process.env.DB_PASSWORD,
