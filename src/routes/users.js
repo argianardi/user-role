@@ -5,4 +5,7 @@ const controllers = require("../controllers/index"); //import controllers
 // post user
 router.post("/", controllers.users.post);
 
+// get all users
+router.get("/", controllers.users.getAll);
+
 module.exports = router;
