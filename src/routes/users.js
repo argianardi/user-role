@@ -14,4 +14,7 @@ router.get("/:user_id", controllers.users.getOneById);
 // put user by id
 router.put("/:user_id", controllers.users.put);
 
+// delete user by id
+router.delete("/:user_id", controllers.users.delete);
+
 module.exports = router;

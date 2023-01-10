@@ -110,5 +110,24 @@ controllerUsers.put = async (req, res) => {
   }
 };
 
+// Delete request
+controllerUsers.delete = async (req, res) => {
+  try {
+    const user = await models.users.destroy({
+      where: {
+        user_id: req.params.user_id,
+      },
+    });
+
+    res.status(200).json({
+      message: "User data has been successfully deleted",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 // export users controllers
 module.exports = controllerUsers;
