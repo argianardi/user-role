@@ -8,4 +8,7 @@ router.post("/", controllers.projects.post);
 // get request all data
 router.get("/", controllers.projects.getAll);
 
+// get request one data by id
+router.get("/:id", controllers.projects.getOneById);
+
 module.exports = router;

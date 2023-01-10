@@ -51,4 +51,28 @@ controllerProjects.getAll = async (req, res) => {
   }
 };
 
+// get request one data by id
+controllerProjects.getOneById = async (req, res) => {
+  try {
+    const project = await models.projects.findAll({
+      where: { id: req.params.id },
+    });
+
+    if (project.length > 0) {
+      res.status(200).json({
+        message: "The project data is obtained",
+        data: project,
+      });
+    } else {
+      res.status(200).json({
+        message: "The project not found",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = controllerProjects;
