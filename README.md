@@ -534,7 +534,7 @@ module.exports = controllerUsers;
 
 ```
 
-Di dalam function `getOneById()` yang kita buat untuk request get 1 data mahasisiwa terdapat function `findAll()` dari `sequelize` sama seperti di request get all data mahasiswa, yang menjadi pembeda di dalam function `findAll()` tersebut terdapat object `where` untuk mengatur bahwa data yang akan kita get hanya 1 data berdasarkan nimnya, yang mana data nimnya ini kita gunakan sebagai req.params.
+Di dalam function `getOneById()` yang kita buat untuk request get 1 data user terdapat function `findAll()` dari `sequelize` sama seperti di request get all data mahasiswa, yang menjadi pembeda di dalam function `findAll()` tersebut terdapat object `where` untuk mengatur bahwa data yang akan kita get hanya 1 data user berdasarkan idnya, yang mana idnya ini kita gunakan sebagai req.params.
 
 Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `users.js`, buat function router untuk get request menggunakan function `getOneById()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/users.js).
 
@@ -911,11 +911,770 @@ router.delete("/:user_id", controllers.users.delete);
 module.exports = router;
 ```
 
-Sehingga jika kita ingin menghapus data mahasiswa yang idnya 10 kita bisa melakukan delete request di postman menggunakan url `http://localhost:2025/users/10`. Hasilnya akan tampil response 200 dan body response:
+Sehingga jika kita ingin menghapus data user yang idnya 10 kita bisa melakukan delete request di postman menggunakan url `http://localhost:2025/users/10`. Hasilnya akan tampil response 200 dan body response:
 
 ```
 {
     "message": "User data has been successfully deleted"
+}
+```
+
+### Table Projects
+
+Sebelum membuat fitur CRUD untuk table `projects` kita harus membuat configurasinya terlebih dahulu.
+
+#### Konfigurasi Table Projects
+
+Untuk mebuat table `projects` sama seperti table `users`, kita harus melakukan konfigurasi table di bagian model yaitu di folder `models` (root/src/configs/models). Jadi di folder `models`ini kita harus menyiapkan file baru dengan nama `projects.js` dan buat script untuk mengkonfigurasi table `projects` ini [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/configs/models/projects.js).
+
+```
+const Sequelize = require("sequelize");
+const db = require("../database/database");
+
+const projects = db.define("projects", {
+  id: {
+    type: Sequelize.INTEGER,
+    autoIncrement: true,
+    allowNull: false,
+    primaryKey: true,
+  },
+  title: { type: Sequelize.STRING },
+  description: { type: Sequelize.STRING },
+});
+
+db.sync({ alter: true })
+  .then(() => {
+    console.log("Projects table create successfully");
+  })
+  .catch((error) => {
+    console.log("Unable to create table:", error.message);
+  });
+
+module.exports = projects;
+```
+
+Selanjutnya di dalam entry point model yaitu file index.js (root/src/configs/models/index.js) kita import dan assign model table `projects` yang kita buat tadi kedalam object [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/configs/models/index.js).
+
+```
+const models = {}; //assign models
+const users = require("./users"); //import users
+//---------------------------------------------------------
+const projects = require("./projects"); //import projects
+//---------------------------------------------------------
+
+models.users = users; //assign users
+//---------------------------------------------------------
+models.projects = projects; //assign projects
+//---------------------------------------------------------
+
+module.exports = models; //export models
+```
+
+Setelah konfigurasi tadi selesai kita buat makan kita jalankan applikasi kita. Maka akan terlihat bahwa kita berhasil membuat table `projects` di database.
+
+#### Controller dan Router Table Projects
+
+Untuk membuat controller kita buka bagian controller yaitu di folder `controllers` (root/src/controllers), di dalam folder ini kita buat file `projects.js` untuk menampung semua script table `projects`.
+
+##### Post Request
+
+Untuk membuat post request kita mulai dengan membuat controllernya di file `projects.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `projects.js` ini kita buat function `post()` [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/projects.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+
+// post request
+controllerProjects.post = async (req, res) => {
+  // assign request body
+  const { title, description } = req.body;
+
+  // check if req.body is null return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelize
+  try {
+    const project = await models.projects.create({
+      title: title,
+      description: description,
+    });
+    res.status(201).json({
+      message: "The project added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+module.exports = controllerProjects;
+```
+
+Di dalam function `post()` itu terdapat function `create()` yang merupakan function dari `sequelize`, berfungsi untuk melakukan INSERT data ke database. Di dalam function `create()` tersebut membutuhkan argumen berupa object berisi req.body yang akan kita kirim ke server dan selanjutnya disimpan ke database.
+
+Selanjutnya kita import dan assign controllerUsers yang kita buat tadi ke object controllers (merupakan object yang menjadi wadah semua controller di project kita) di file `index.js` yang tersimpan di folder `controllers` (root/src/controllers) [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/index.js).
+
+```
+const controllers = {}; //assign controllers (object of all controllers)
+const users = require("./users"); //import users controllers
+//--------------------------------------------------------------------------------------
+const projects = require("./projects"); //import projects controllers
+//--------------------------------------------------------------------------------------
+
+controllers.users = users; //assign users controllers to controllers
+//--------------------------------------------------------------------------------------
+controllers.projects = projects; //assign projects controllers to controllers
+//--------------------------------------------------------------------------------------
+
+module.exports = controllers; //export controllers
+```
+
+Selanjutnya ke folder `routes` di (root/src/routes),buat file bernama `projects.js`, yang nantinya kita gunakan untuk menampung semua function routes untuk table projects. Di dalam file `project.js` ini kita buat function router post request menggunakan function `post()` yang kita buat dibagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/projects.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import projects controllers
+
+// post request
+router.post("/", controllers.projects.post);
+
+module.exports = router;
+```
+
+Selanjutnya kita ke file entry point aplikasi kita yaitu file `index.js` yang tersimpan di folder `root/src`, import dan define function router projects [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/index.js).
+
+```
+const express = require("express");
+const bodyParser = require("body-parser");
+const compression = require("compression");
+const helmet = require("helmet");
+const cors = require("cors");
+require("dotenv").config();
+const usersRoutes = require("./routes/users");
+//------------------------------------------------------------------------------
+const projectsRoutes = require("./routes/projects");
+//------------------------------------------------------------------------------
+
+//initialize express
+const app = express();
+
+// use package
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(cors());
+app.use(helmet());
+app.use(compression());
+
+// Routes
+app.use("/users", usersRoutes);
+//------------------------------------------------------------------------------
+app.use("/projects", projectsRoutes);
+//------------------------------------------------------------------------------
+
+// server listening
+const PORT = process.env.PORT || 6022;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+```
+
+Terakhir baru kita jalankan project kita, hasilnya konfigurasi database dan table kita berhasil dikonfigurasi. Dan jika kita melakukan post request menggunakan url `http://localhost:2025/projects` dan body request:
+
+```
+{
+    "title":"project paijo",
+    "description": "project punya nya paijo"
+}
+```
+
+Akan menghasilkan response status 201 dan body response:
+
+```
+{
+    message: "The project added successfully",
+}
+```
+
+#### get All Data request
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `projects.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `getAll()` untuk melakukan get all data request[[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/projects.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+
+// post request
+controllerProjects.post = async (req, res) => {
+  // assign request body
+  const { title, description } = req.body;
+
+  // check if req.body is null return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelize
+  try {
+    const project = await models.projects.create({
+      title: title,
+      description: description,
+    });
+    res.status(201).json({
+      message: "The project added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//------------------------------------------------------------------------
+// get all data
+controllerProjects.getAll = async (req, res) => {
+  try {
+    const projects = await models.projects.findAll();
+    if (projects.length > 0) {
+      res.status(200).json({
+        message: "All projects data are obtained",
+        data: projects,
+      });
+    } else {
+      res.status(200).json({
+        message: "Projects not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//------------------------------------------------------------------------
+
+module.exports = controllerProjects;
+```
+
+Di dalam function `getAll()` diatas terdapat function `findAll()`, function ini merupakan function dari `sequelize` yang berfungsi untuk mengambil/menampilkan semua data yang ada didalam table yang kita define.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `projects.js`, buat function router untuk get request menggunakan function getAll yang kita buat di bagian controllers tadi[[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/projects.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import projects controllers
+
+// post request
+router.post("/", controllers.projects.post);
+
+//------------------------------------------------------------------------
+// get request all data
+router.get("/", controllers.projects.getAll);
+//------------------------------------------------------------------------
+
+module.exports = router;
+```
+
+sehingga hasilnya jika kita melakukan get request di postman misalnya menggunakan url `http://localhost:2025/projects` akan tampil respons status 200 dan body response data semua users seperti ini:
+
+```
+{
+    "message": "All projects data are obtained",
+    "data": [
+        {
+            "id": 1,
+            "title": "project paijo",
+            "description": "project punya nya paijo",
+            "createdAt": "2023-01-10T14:13:49.000Z",
+            "updatedAt": "2023-01-10T14:13:49.000Z"
+        },
+        {
+            "id": 2,
+            "title": "project sukijan",
+            "description": "project punya nya sukijan",
+            "createdAt": "2023-01-10T17:44:43.000Z",
+            "updatedAt": "2023-01-10T17:44:43.000Z"
+        }
+    ]
+}
+```
+
+#### get 1 Data project by id
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `projects.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `getOneById()` untuk melakukan get request 1 data projects berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/projects.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+
+// post request
+controllerProjects.post = async (req, res) => {
+  // assign request body
+  const { title, description } = req.body;
+
+  // check if req.body is null return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelize
+  try {
+    const project = await models.projects.create({
+      title: title,
+      description: description,
+    });
+    res.status(201).json({
+      message: "The project added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data
+controllerProjects.getAll = async (req, res) => {
+  try {
+    const projects = await models.projects.findAll();
+    if (projects.length > 0) {
+      res.status(200).json({
+        message: "All projects data are obtained",
+        data: projects,
+      });
+    } else {
+      res.status(200).json({
+        message: "Projects not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//-----------------------------------------------------------------------
+// get request one data by id
+controllerProjects.getOneById = async (req, res) => {
+  try {
+    const project = await models.projects.findAll({
+      where: { id: req.params.id },
+    });
+
+    if (project.length > 0) {
+      res.status(200).json({
+        message: "The project data is obtained",
+        data: project,
+      });
+    } else {
+      res.status(200).json({
+        message: "The project not found",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//-----------------------------------------------------------------------
+
+module.exports = controllerProjects;
+```
+
+Di dalam function `getOneById()` yang kita buat untuk request get 1 data project terdapat function `findAll()` dari `sequelize` sama seperti di request get all data projects, yang menjadi pembeda di dalam function `findAll()` tersebut terdapat object `where` untuk mengatur bahwa data yang akan kita get hanya 1 data berdasarkan idnya, yang mana data idnya ini kita gunakan sebagai req.params.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `project.js`, buat function router untuk get request menggunakan function `getOneById()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/projects.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import projects controllers
+
+// post request
+router.post("/", controllers.projects.post);
+
+// get request all data
+router.get("/", controllers.projects.getAll);
+
+//------------------------------------------------------------------------
+// get request one data by id
+router.get("/:id", controllers.projects.getOneById);
+//------------------------------------------------------------------------
+
+module.exports = router;
+```
+
+Sehingga hasilnya jika kita melakukan get request di postman menggunakan url `http://localhost:2025/projects/1` akan tampil respons status 200 dan body response data 1 projects yang idnya 1 seperti ini:
+
+```
+{
+    "message": "The project data is obtained",
+    "data": [
+        {
+            "id": 1,
+            "title": "project paijo",
+            "description": "project punya nya paijo",
+            "createdAt": "2023-01-10T14:13:49.000Z",
+            "updatedAt": "2023-01-10T14:13:49.000Z"
+        }
+    ]
+}
+```
+
+#### Put request
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `projects.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `project.js` ini kita buat function `put()` untuk melakukan edit/update 1 data projects berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/projects.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+
+// post request
+controllerProjects.post = async (req, res) => {
+  // assign request body
+  const { title, description } = req.body;
+
+  // check if req.body is null return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelize
+  try {
+    const project = await models.projects.create({
+      title: title,
+      description: description,
+    });
+    res.status(201).json({
+      message: "The project added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data
+controllerProjects.getAll = async (req, res) => {
+  try {
+    const projects = await models.projects.findAll();
+    if (projects.length > 0) {
+      res.status(200).json({
+        message: "All projects data are obtained",
+        data: projects,
+      });
+    } else {
+      res.status(200).json({
+        message: "Projects not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get request one data by id
+controllerProjects.getOneById = async (req, res) => {
+  try {
+    const project = await models.projects.findAll({
+      where: { id: req.params.id },
+    });
+
+    if (project.length > 0) {
+      res.status(200).json({
+        message: "The project data is obtained",
+        data: project,
+      });
+    } else {
+      res.status(200).json({
+        message: "The project not found",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//----------------------------------------------------------------------------------------
+// put request
+controllerProjects.put = async (req, res) => {
+  //body request
+  const { title, description } = req.body;
+
+  // check the body req if nill return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const project = await models.projects.update(
+      {
+        title: title,
+        description: description,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "The project data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//----------------------------------------------------------------------------------------
+
+module.exports = controllerProjects;
+```
+
+Di function `put()` di atas terdapat function `update()` milik `sequelize` digunakan untuk mengupdate data dalam database. Di dalam function `update()` tersebut membutuhkan argument berupa req.body yang nantinya akan dikirim ke server untuk merubah data di dalam database dan juga `where` yang berisi req.params untuk dijadikan reference data yang akan diupdate.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `projects.js`, buat function router untuk put request menggunakan function `put()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/projects.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import projects controllers
+
+// post request
+router.post("/", controllers.projects.post);
+
+// get request all data
+router.get("/", controllers.projects.getAll);
+
+// get request one data by id
+router.get("/:id", controllers.projects.getOneById);
+
+//-------------------------------------------------------------------------------------
+//  put request
+router.put("/:id", controllers.projects.put);
+//-------------------------------------------------------------------------------------
+
+module.exports = router;
+```
+
+Selanjutnya jika kita ingin mengupdate data project yang idnya 2, kita bisa melakukan put di postman menggunakan url `http:// localhost:2025/users/2` dan body request:
+
+```
+{
+    "title":"project sukijan edit",
+    "description": "project punya nya sukijan edit"
+}
+```
+
+Hasilnya akan tampil response status 200 dan body response:
+
+```
+{
+    "message": "The project data successfully updated"
+}
+```
+
+#### Delete
+
+Untuk membuat delete request kita mulai dengan membuat controllernya di file `projects.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `projects.js` ini kita buat function `delete()` untuk menghapus data 1 projects berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/projects.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+
+// post request
+controllerProjects.post = async (req, res) => {
+  // assign request body
+  const { title, description } = req.body;
+
+  // check if req.body is null return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelize
+  try {
+    const project = await models.projects.create({
+      title: title,
+      description: description,
+    });
+    res.status(201).json({
+      message: "The project added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data
+controllerProjects.getAll = async (req, res) => {
+  try {
+    const projects = await models.projects.findAll();
+    if (projects.length > 0) {
+      res.status(200).json({
+        message: "All projects data are obtained",
+        data: projects,
+      });
+    } else {
+      res.status(200).json({
+        message: "Projects not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get request one data by id
+controllerProjects.getOneById = async (req, res) => {
+  try {
+    const project = await models.projects.findAll({
+      where: { id: req.params.id },
+    });
+
+    if (project.length > 0) {
+      res.status(200).json({
+        message: "The project data is obtained",
+        data: project,
+      });
+    } else {
+      res.status(200).json({
+        message: "The project not found",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// put request
+controllerProjects.put = async (req, res) => {
+  //body request
+  const { title, description } = req.body;
+
+  // check the body req if nill return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const project = await models.projects.update(
+      {
+        title: title,
+        description: description,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "The project data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//-------------------------------------------------------------------------------
+//delete request
+controllerProjects.delete = async (req, res) => {
+  try {
+    const project = await models.projects.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.status(200).json({
+      message: "The project data deleted successfully",
+    });
+  } catch (error) {
+    res.status(200).json({
+      message: error.message,
+    });
+  }
+};
+//-------------------------------------------------------------------------------
+
+module.exports = controllerProjects;
+```
+
+Di dalam function `delete()` itu terdapat function `destroy()` yang merupakan function dari `sequelize`, untuk menghapus data di dalam database. Function `destroy()` ini membuatuhkan argument berupa `where` yang berisi req.params (di contoh ini kita set id project) untuk dijadikan sebagai reference data yang akan dihapus.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `projects.js`, buat function router untuk delete request menggunakan function `delete()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/projects.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import projects controllers
+
+// post request
+router.post("/", controllers.projects.post);
+
+// get request all data
+router.get("/", controllers.projects.getAll);
+
+// get request one data by id
+router.get("/:id", controllers.projects.getOneById);
+
+//  put request
+router.put("/:id", controllers.projects.put);
+
+//-------------------------------------------------------------------
+// delete request
+router.delete("/:id", controllers.projects.delete);
+//-------------------------------------------------------------------
+
+module.exports = router;
+```
+
+Sehingga jika kita ingin menghapus data project yang idnya 2 kita bisa melakukan delete request di postman menggunakan url `http://localhost:2025/projects/2`. Hasilnya akan tampil response 200 dan body response:
+
+```
+{
+    "message": "The project data deleted successfully"
 }
 ```
 
