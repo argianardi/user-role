@@ -29,4 +29,26 @@ controllerProjects.post = async (req, res) => {
   }
 };
 
+// get all data
+controllerProjects.getAll = async (req, res) => {
+  try {
+    const projects = await models.projects.findAll();
+    if (projects.length > 0) {
+      res.status(200).json({
+        message: "All projects data are obtained",
+        data: projects,
+      });
+    } else {
+      res.status(200).json({
+        message: "Projects not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = controllerProjects;

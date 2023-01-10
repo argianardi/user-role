@@ -5,4 +5,7 @@ const controllers = require("../controllers/index"); //import projects controlle
 // post request
 router.post("/", controllers.projects.post);
 
+// get request all data
+router.get("/", controllers.projects.getAll);
+
 module.exports = router;
