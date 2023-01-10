@@ -9,11 +9,15 @@ const users = db.define("users", {
     autoIncrement: true, // To increment user_id automatically
     allowNull: false, // user_id can not be null
     primaryKey: true, // for uniquely identify user
-    unique: true,
+    unique: "user_id",
   },
 
   // Column-2, username
-  username: { type: Sequelize.STRING(225), allowNull: false, unique: true },
+  username: {
+    type: Sequelize.STRING(225),
+    allowNull: false,
+    unique: "username",
+  },
 
   // Column-3, password
   password: { type: Sequelize.STRING(225), allowNull: false },
@@ -26,10 +30,10 @@ const users = db.define("users", {
 // to execute alter table
 db.sync({ alter: true })
   .then(() => {
-    console.log("Mahasiswa table created successfully!");
+    console.log("Table users created successfully!");
   })
   .catch((error) => {
-    console.log("Unable to create table:", error.message);
+    console.log("Unable to create table users:", error.message);
   });
 
 // export table
