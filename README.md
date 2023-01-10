@@ -146,11 +146,15 @@ const users = db.define("users", {
     autoIncrement: true, // To increment user_id automatically
     allowNull: false, // user_id can not be null
     primaryKey: true, // for uniquely identify user
-    unique: true,
+    unique: "user_id",
   },
 
   // Column-2, username
-  username: { type: Sequelize.STRING(225), allowNull: false, unique: true },
+  username: {
+    type: Sequelize.STRING(225),
+    allowNull: false,
+    unique: "username",
+  },
 
   // Column-3, password
   password: { type: Sequelize.STRING(225), allowNull: false },
@@ -163,10 +167,10 @@ const users = db.define("users", {
 // to execute alter table
 db.sync({ alter: true })
   .then(() => {
-    console.log("Mahasiswa table created successfully!");
+    console.log("Table users created successfully!");
   })
   .catch((error) => {
-    console.log("Unable to create table:", error.message);
+    console.log("Unable to create table users:", error.message);
   });
 
 // export table
@@ -205,7 +209,7 @@ const models = require("../configs/models/index"); //import model
 const controllerUsers = {}; //assign users controllers(object of all users controllers)
 
 // post request
-controllerUsers.post = async function (req, res) {
+controllerUsers.post = async (req, res) => {
   // assign reques body
   const { username, password } = req.body;
   if (!(username && password)) {
@@ -234,6 +238,8 @@ controllerUsers.post = async function (req, res) {
 module.exports = controllerUsers;
 ```
 
+Di dalam function `post` itu terdapat function `create()` yang merupakan function dari `sequelize`, berfungsi untuk melakukan INSERT data ke database. Di dalam function `create()` tersebut membutuhkan argumen berupa object berisi req.body yang akan kita kirim ke server dan selanjutnya disimpan ke database.
+
 Selanjutnya kita import dan assign controllerUsers yang kita buat tadi ke object controllers (merupakan object yang menjadi wadah semua controller di project kita) di file `index.js` yang tersimpan di folder `root/src/controllers` [[3]](https://github.com/argianardi/user-role/blob/SettingORM/src/controllers/index.js).
 
 ```
@@ -249,7 +255,7 @@ controllers.users = users; //assign users controllers to controllers
 module.exports = controllers; //export controllers
 ```
 
-Selanjutnya buat folder `routes` di `root/src` yang digunakan sebagai wadah untuk menampung semua file route di diproject kita. Di foleder `routes` ini kita buat file bernama `index.js`, yang nantinya kita gunakan untuk menampung semua function routes untuk table users [[3]](https://github.com/argianardi/user-role/blob/SettingORM/src/routes/users.js).
+Selanjutnya buat folder `routes` di `root/src` yang digunakan sebagai wadah untuk menampung semua file route di diproject kita. Di foleder `routes` ini kita buat file bernama `users.js`, yang nantinya kita gunakan untuk menampung semua function routes untuk table users [[3]](https://github.com/argianardi/user-role/blob/SettingORM/src/routes/users.js).
 
 ```
 const express = require("express"); //import express
@@ -314,12 +320,610 @@ Akan menghasilkan response status 201 dan body response:
 }
 ```
 
+## Fitur CRUD (Create, Read, Update, Delete)
+
+Di project kali ini kita akan membuat fitur CRUD untuk table `users` dan table `projects`. Untuk table `users` kita sudah membuat post request sehingga nanti kita tinggal mebuat request get, put dan delete.
+
+### Table Users
+
+#### get All Data request
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `users.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `getAll()` untuk melakukan get all data request[[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/users.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password } = req.body;
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username: username,
+      password: password,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//--------------------------------------------------------------------------
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  try {
+    const users = await models.users.findAll();
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//--------------------------------------------------------------------------
+
+// export users controllers
+module.exports = controllerUsers;
+```
+
+Di dalam function `getAll()` diatas terdapat function `findAll()`, function ini merupakan function dari `sequelize` yang berfungsi untuk mengambil/menampilkan semua data yang ada didalam table yang kita define.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `users.js`, buat function router untuk get request menggunakan function getAll yang kita buat di bagian controllers tadi[[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/users.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import controllers
+
+// post user
+router.post("/", controllers.users.post);
+
+//-----------------------------------------------------------------------------------
+// get all users
+router.get("/", controllers.users.getAll);
+//-----------------------------------------------------------------------------------
+
+module.exports = router;
+```
+
+sehingga hasilnya jika kita melakukan get request di postman akan tampil respons status 200 dan body response data semua users seperti ini:
+
+```
+{
+    "message": "all user data is obtained",
+    "data": [
+        {
+            "user_id": 1,
+            "username": "jery",
+            "password": "jery",
+            "createdAt": null,
+            "updatedAt": null
+        },
+        {
+            "user_id": 2,
+            "username": "yono",
+            "password": "yono",
+            "createdAt": "2023-01-09T06:17:48.000Z",
+            "updatedAt": "2023-01-09T06:17:48.000Z"
+        },
+        {
+            "user_id": 4,
+            "username": "yanto",
+            "password": "yono",
+            "createdAt": "2023-01-09T06:21:58.000Z",
+            "updatedAt": "2023-01-09T06:21:58.000Z"
+        },
+        {
+            "user_id": 5,
+            "username": "yantio",
+            "password": "yono",
+            "createdAt": "2023-01-09T07:46:16.000Z",
+            "updatedAt": "2023-01-09T07:46:16.000Z"
+        }
+    ]
+}
+```
+
+#### get 1 Data user by id
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `users.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `getOneById()` untuk melakukan get request 1 data users berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/users.js).
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password } = req.body;
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username: username,
+      password: password,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  try {
+    const users = await models.users.findAll();
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//---------------------------------------------------------------------
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  try {
+    const user = await models.users.findAll({
+      where: { user_id: req.params.user_id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//---------------------------------------------------------------------
+
+// export users controllers
+module.exports = controllerUsers;
+
+```
+
+Di dalam function `getOneById()` yang kita buat untuk request get 1 data mahasisiwa terdapat function `findAll()` dari `sequelize` sama seperti di request get all data mahasiswa, yang menjadi pembeda di dalam function `findAll()` tersebut terdapat object `where` untuk mengatur bahwa data yang akan kita get hanya 1 data berdasarkan nimnya, yang mana data nimnya ini kita gunakan sebagai req.params.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `users.js`, buat function router untuk get request menggunakan function `getOneById()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/users.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import controllers
+
+// post user
+router.post("/", controllers.users.post);
+
+// get all users
+router.get("/", controllers.users.getAll);
+
+//---------------------------------------------------------------
+// get one user by id
+router.get("/:user_id", controllers.users.getOneById);
+//---------------------------------------------------------------
+
+module.exports = router;
+```
+
+Sehingga hasilnya jika kita melakukan get request di postman menggunakan url `http://localhost:2025/users/2` akan tampil respons status 200 dan body response data semua 1 user yang idnya 2 seperti ini:
+
+```
+{
+    "message": "The user data is obtained",
+    "data": [
+        {
+            "user_id": 2,
+            "username": "yono",
+            "password": "yono",
+            "createdAt": "2023-01-09T06:17:48.000Z",
+            "updatedAt": "2023-01-09T06:17:48.000Z"
+        }
+    ]
+}
+```
+
+#### Put request
+
+Untuk membuat get request kita mulai dengan buat controllernya di file `users.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `put()` untuk melakukan edit/update data 1 data users berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/users.js).
+
+```
+const controllers = require(".");
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password } = req.body;
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username: username,
+      password: password,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  try {
+    const users = await models.users.findAll();
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  try {
+    const user = await models.users.findAll({
+      where: { user_id: req.params.user_id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//----------------------------------------------------------------
+// Put request
+controllerUsers.put = async (req, res) => {
+  // body request
+  const { username, password } = req.body;
+
+  // check the body req if null return status 400 and a message
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const user = await models.users.update(
+      {
+        username: username,
+        password: password,
+      },
+      {
+        where: {
+          user_id: req.params.user_id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "User data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//----------------------------------------------------------------
+
+// export users controllers
+module.exports = controllerUsers;
+```
+
+Di function `put()` di atas terdapat function `update()` milik `sequelize` digunakan untuk mengupdate data dalam database. Di dalam function `update()` tersebut membutuhkan argument berupa req.body yang nantinya akan dikirim ke server untuk merubah data di dalam database dan juga `where` yang berisi req.params untuk dijadikan reference data yang akan diupdate.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `users.js`, buat function router untuk put request menggunakan function `put()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/users.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import controllers
+
+// post user
+router.post("/", controllers.users.post);
+
+// get all users
+router.get("/", controllers.users.getAll);
+
+// get one user by id
+router.get("/:user_id", controllers.users.getOneById);
+
+//------------------------------------------------------------
+// put user by id
+router.get("/:user_id", controllers.users.put);
+//------------------------------------------------------------
+
+module.exports = router;
+```
+
+Selanjutnya jika kita ingin mengupdate data user yang idnya 10, kita bisa melakukan put di postman menggunakan url `http:// localhost:2025/users/10` dan body request:
+
+```
+{
+    "username": "sarinah2",
+    "password":"sarinahupdate"
+}
+```
+
+Hasilnya akan tampil response status 200 dan body response:
+
+```
+{
+    "message": "User data successfully updated"
+}
+```
+
+#### Delete
+
+Untuk membuat delete request kita mulai dengan membuat controllernya di file `users.js` yang tersimpan di folder `controllers` (root/src/controllers), di file `users.js` ini kita buat function `delete()` untuk menghapus data 1 users berdasarkan id-nya [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/controllers/users.js).
+
+```
+const controllers = require(".");
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password } = req.body;
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username: username,
+      password: password,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  try {
+    const users = await models.users.findAll();
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  try {
+    const user = await models.users.findAll({
+      where: { user_id: req.params.user_id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Put request
+controllerUsers.put = async (req, res) => {
+  // body request
+  const { username, password } = req.body;
+
+  // check the body req if null return status 400 and a message
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const user = await models.users.update(
+      {
+        username: username,
+        password: password,
+      },
+      {
+        where: {
+          user_id: req.params.user_id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "User data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//-----------------------------------------------------------------
+// Delete request
+controllerUsers.delete = async (req, res) => {
+  try {
+    const user = await models.users.destroy({
+      where: {
+        user_id: req.params.user_id,
+      },
+    });
+
+    res.status(200).json({
+      message: "User data has been successfully deleted",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+//-----------------------------------------------------------------
+
+// export users controllers
+module.exports = controllerUsers;
+```
+
+Di dalam function `delete()` itu terdapat function `destroy()` yang merupakan function dari `sequelize`, untuk menghapus data di dalam database. Function `destroy()` ini membuatuhkan argument berupa `where` yang berisi req.params (di contoh ini kita set user_id) untuk dijadikan sebagai reference data yang akan dihapus.
+
+Selanjut kita masuk ke folder `routes` (root/src/routes) tepatnya di file `users.js`, buat function router untuk delete request menggunakan function `delete()` yang kita buat di bagian controllers tadi [[3]](https://github.com/argianardi/user-role/blob/crud-features/src/routes/users.js).
+
+```
+const express = require("express"); //import express
+const router = express.Router(); //include express router
+const controllers = require("../controllers/index"); //import controllers
+
+// post user
+router.post("/", controllers.users.post);
+
+// get all users
+router.get("/", controllers.users.getAll);
+
+// get one user by id
+router.get("/:user_id", controllers.users.getOneById);
+
+// put user by id
+router.put("/:user_id", controllers.users.put);
+
+//---------------------------------------------------------
+// delete user by id
+router.delete("/:user_id", controllers.users.delete);
+//---------------------------------------------------------
+
+module.exports = router;
+```
+
+Sehingga jika kita ingin menghapus data mahasiswa yang idnya 10 kita bisa melakukan delete request di postman menggunakan url `http://localhost:2025/users/10`. Hasilnya akan tampil response 200 dan body response:
+
+```
+{
+    "message": "User data has been successfully deleted"
+}
+```
+
 ## NOTES
 
 - Saat melakukan configurasi database dan table menggunakan `sequelize`, kita juga harus mengimport routes di file entry point project kita(`index.js`), minimal salah satu route table yang kita buat seperti ini:
 
 ```
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const compression = require("compression");
