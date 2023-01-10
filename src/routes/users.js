@@ -11,4 +11,7 @@ router.get("/", controllers.users.getAll);
 // get one user by id
 router.get("/:user_id", controllers.users.getOneById);
 
+// put user by id
+router.put("/:user_id", controllers.users.put);
+
 module.exports = router;

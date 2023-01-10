@@ -1,3 +1,4 @@
+const controllers = require(".");
 const models = require("../configs/models/index"); //import model
 const controllerUsers = {}; //assign users controllers
 
@@ -67,6 +68,41 @@ controllerUsers.getOneById = async (req, res) => {
         data: [],
       });
     }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Put request
+controllerUsers.put = async (req, res) => {
+  // body request
+  const { username, password } = req.body;
+
+  // check the body req if null return status 400 and a message
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const user = await models.users.update(
+      {
+        username: username,
+        password: password,
+      },
+      {
+        where: {
+          user_id: req.params.user_id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "User data successfully updated",
+    });
   } catch (error) {
     res.status(404).json({
       message: error.message,
