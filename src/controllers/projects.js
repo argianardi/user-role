@@ -75,4 +75,58 @@ controllerProjects.getOneById = async (req, res) => {
   }
 };
 
+// put request
+controllerProjects.put = async (req, res) => {
+  //body request
+  const { title, description } = req.body;
+
+  // check the body req if nill return status 400 and a message
+  if (!(title && description)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const project = await models.projects.update(
+      {
+        title: title,
+        description: description,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "The project data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+//delete request
+controllerProjects.delete = async (req, res) => {
+  try {
+    const project = await models.projects.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.status(200).json({
+      message: "The project data deleted successfully",
+    });
+  } catch (error) {
+    res.status(200).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = controllerProjects;
