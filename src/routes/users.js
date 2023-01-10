@@ -8,4 +8,7 @@ router.post("/", controllers.users.post);
 // get all users
 router.get("/", controllers.users.getAll);
 
+// get one user by id
+router.get("/:user_id", controllers.users.getOneById);
+
 module.exports = router;

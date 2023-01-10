@@ -49,5 +49,30 @@ controllerUsers.getAll = async (req, res) => {
   }
 };
 
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  try {
+    const user = await models.users.findAll({
+      where: { user_id: req.params.user_id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
 // export users controllers
 module.exports = controllerUsers;
