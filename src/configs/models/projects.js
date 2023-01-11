@@ -10,6 +10,7 @@ const projects = db.define("projects", {
   },
   title: { type: Sequelize.STRING },
   description: { type: Sequelize.STRING },
+  user_id: { type: Sequelize.STRING },
   createdAt: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
   updatedAt: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
 });
