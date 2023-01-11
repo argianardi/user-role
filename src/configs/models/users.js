@@ -4,12 +4,11 @@ const db = require("../database/database"); // import database
 // Define method takes two arguments (name of table and columns inside the table)
 const users = db.define("users", {
   // Column-1, user_id is an object with properties like type, keys, validation of column.
-  user_id: {
+  id: {
     type: Sequelize.INTEGER, // Sequelize module has INTEGER data_type
     autoIncrement: true, // To increment user_id automatically
     allowNull: false, // user_id can not be null
     primaryKey: true, // for uniquely identify user
-    unique: "user_id",
   },
 
   // Column-2, username
