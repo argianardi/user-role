@@ -57,8 +57,13 @@ controllerUsers.getAll = async (req, res) => {
 
 // get one data request by id
 controllerUsers.getOneById = async (req, res) => {
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
   try {
     const user = await models.users.findAll({
+      include: [{ model: models.projects }],
       where: { id: req.params.id },
     });
 
