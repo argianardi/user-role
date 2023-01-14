@@ -4,23 +4,25 @@ const compression = require("compression");
 const helmet = require("helmet");
 const cors = require("cors");
 require("dotenv").config();
-const homeRoutes = require("./routes/home");
+const usersRoutes = require("./routes/users");
+const projectsRoutes = require("./routes/projects");
 
+//initialize express
 const app = express();
 
-const PORT = process.env.PORT || 5022;
-
 // use package
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 app.use(cors());
 app.use(helmet());
 app.use(compression());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 
-// Route
-app.use("/home", homeRoutes);
+// Routes
+app.use("/users", usersRoutes);
+app.use("/projects", projectsRoutes);
 
 // server listening
+const PORT = process.env.PORT || 6022;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
