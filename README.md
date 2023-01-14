@@ -28,6 +28,7 @@ Terdapat beberapa hal yang harus kita siapkan sebelum membuat project:
   - dotenv digunakan untuk menyimpan data - data yang bersifat sensitif atau rahasia, tujuannya agar data - data tersebut tidak bisa diakses oleh user dari sisi client [[2]](https://www.youtube.com/watch?v=jBAZPXNQq0Y&t=2542s)
   - helmet untuk memperkuat security project kita.
 
+- Buat file .gitignore, untuk menyembunyikan folder/file yang tidak perlu untuk dipush seperti node_modules dan .env.
 - Buat folder src, yang didalamnya buat:
 
   - folder configs
@@ -141,12 +142,11 @@ const db = require("../database/database"); // import database
 // Define method takes two arguments (name of table and columns inside the table)
 const users = db.define("users", {
   // Column-1, user_id is an object with properties like type, keys, validation of column.
-  user_id: {
+  id: {
     type: Sequelize.INTEGER, // Sequelize module has INTEGER data_type
     autoIncrement: true, // To increment user_id automatically
     allowNull: false, // user_id can not be null
     primaryKey: true, // for uniquely identify user
-    unique: "user_id",
   },
 
   // Column-2, username
@@ -507,7 +507,7 @@ controllerUsers.getAll = async (req, res) => {
 controllerUsers.getOneById = async (req, res) => {
   try {
     const user = await models.users.findAll({
-      where: { user_id: req.params.user_id },
+      where: { id: req.params.id },
     });
 
     if (user.length > 0) {
@@ -551,7 +551,7 @@ router.get("/", controllers.users.getAll);
 
 //---------------------------------------------------------------
 // get one user by id
-router.get("/:user_id", controllers.users.getOneById);
+router.get("/:id", controllers.users.getOneById);
 //---------------------------------------------------------------
 
 module.exports = router;
@@ -635,7 +635,7 @@ controllerUsers.getAll = async (req, res) => {
 controllerUsers.getOneById = async (req, res) => {
   try {
     const user = await models.users.findAll({
-      where: { user_id: req.params.user_id },
+      where: { id: req.params.id },
     });
 
     if (user.length > 0) {
@@ -677,7 +677,7 @@ controllerUsers.put = async (req, res) => {
       },
       {
         where: {
-          user_id: req.params.user_id,
+          id: req.params.id,
         },
       }
     );
@@ -713,11 +713,11 @@ router.post("/", controllers.users.post);
 router.get("/", controllers.users.getAll);
 
 // get one user by id
-router.get("/:user_id", controllers.users.getOneById);
+router.get("/:id", controllers.users.getOneById);
 
 //------------------------------------------------------------
 // put user by id
-router.get("/:user_id", controllers.users.put);
+router.get("/:id", controllers.users.put);
 //------------------------------------------------------------
 
 module.exports = router;
@@ -801,7 +801,7 @@ controllerUsers.getAll = async (req, res) => {
 controllerUsers.getOneById = async (req, res) => {
   try {
     const user = await models.users.findAll({
-      where: { user_id: req.params.user_id },
+      where: { id: req.params.id },
     });
 
     if (user.length > 0) {
@@ -842,7 +842,7 @@ controllerUsers.put = async (req, res) => {
       },
       {
         where: {
-          user_id: req.params.user_id,
+          id: req.params.id,
         },
       }
     );
@@ -863,7 +863,7 @@ controllerUsers.delete = async (req, res) => {
   try {
     const user = await models.users.destroy({
       where: {
-        user_id: req.params.user_id,
+        id: req.params.id,
       },
     });
 
@@ -898,14 +898,14 @@ router.post("/", controllers.users.post);
 router.get("/", controllers.users.getAll);
 
 // get one user by id
-router.get("/:user_id", controllers.users.getOneById);
+router.get("/:id", controllers.users.getOneById);
 
 // put user by id
-router.put("/:user_id", controllers.users.put);
+router.put("/:id", controllers.users.put);
 
 //---------------------------------------------------------
 // delete user by id
-router.delete("/:user_id", controllers.users.delete);
+router.delete("/:id", controllers.users.delete);
 //---------------------------------------------------------
 
 module.exports = router;
@@ -940,6 +940,9 @@ const projects = db.define("projects", {
   },
   title: { type: Sequelize.STRING },
   description: { type: Sequelize.STRING },
+  user_id: { type: Sequelize.STRING },
+  createdAt: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+  updatedAt: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
 });
 
 db.sync({ alter: true })
@@ -1678,6 +1681,203 @@ Sehingga jika kita ingin menghapus data project yang idnya 2 kita bisa melakukan
 }
 ```
 
+## Associate / Relasi table
+
+### Relasi Table One to Many
+
+Di contoh ini misalnya kita akan membuat relasi one to many untuk table user dan project dimana satu user bisa punya banyak project. Untuk membuat relasi ini kita buat scriptnya dibagian controllers table `users` di file bernama `users.js` yang terletak di folder `controllers` (root/src/controllers) dibagian get all users request dan get one user by id request [[3]](https://github.com/argianardi/user-role/blob/associate-datababase/src/controllers/users.js):
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password } = req.body;
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username: username,
+      password: password,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  //------------------------------------------------------------------------------------------------
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
+  //------------------------------------------------------------------------------------------------
+  try {
+    const users = await models.users.findAll({
+  //------------------------------------------------------------------------------------------------
+      include: [{ model: models.projects }],
+  //------------------------------------------------------------------------------------------------
+    });
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  //------------------------------------------------------------------------------------------------
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
+  //------------------------------------------------------------------------------------------------
+  try {
+    const user = await models.users.findAll({
+  //------------------------------------------------------------------------------------------------
+      include: [{ model: models.projects }],
+  //------------------------------------------------------------------------------------------------
+      where: { id: req.params.id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Put request
+controllerUsers.put = async (req, res) => {
+  // body request
+  const { username, password } = req.body;
+
+  // check the body req if null return status 400 and a message
+  if (!(username && password)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  try {
+    const user = await models.users.update(
+      {
+        username: username,
+        password: password,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "User data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Delete request
+controllerUsers.delete = async (req, res) => {
+  try {
+    const user = await models.users.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.status(200).json({
+      message: "User data has been successfully deleted",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// export users controllers
+module.exports = controllerUsers;
+```
+
+Hasilnya saat kita melakukan get request all users dengan url `http://localhost:2025/users`, kita akan mendapatkan response status 200 dan body request:
+
+```
+{
+    "message": "all user data is obtained",
+    "data": [
+        {
+            "id": 2,
+            "username": "sarinah",
+            "password": "sarinahaja",
+            "createdAt": "2023-01-11T08:31:59.000Z",
+            "updatedAt": "2023-01-11T08:31:59.000Z",
+            "projects": [
+                {
+                    "id": 5,
+                    "title": "project 4 sarinah",
+                    "description": "project keempat punya nya sarinah",
+                    "user_id": "2",
+                    "createdAt": "2023-01-11T12:39:26.000Z",
+                    "updatedAt": "2023-01-11T12:39:26.000Z"
+                },
+                {
+                    "id": 3,
+                    "title": "project 2 sarinah",
+                    "description": "project kedua punya nya sarinah",
+                    "user_id": "2",
+                    "createdAt": "2023-01-11T12:38:09.000Z",
+                    "updatedAt": "2023-01-11T12:38:09.000Z"
+                }
+            ]
+        }
+    ]
+}
+```
+
+Terlihat dibagian object data terdapat key project yang berisi data lebih dari satu projects, artinya kita telah berhasil melakukan associate relasi one to manyo untuk table users ke table projects. Dan saat kita melakukan get one user by id hasilnya juga akan sama.
+
 ## NOTES
 
 - Saat melakukan configurasi database dan table menggunakan `sequelize`, kita juga harus mengimport routes di file entry point project kita(`index.js`), minimal salah satu route table yang kita buat seperti ini:
@@ -1716,6 +1916,32 @@ Jika tidak maka konfigurasi database dan table tidak akan jalan. Dan posisi impo
 ```
 Unable to create table: Access denied for user ''@'localhost' (using password: YES)
 ```
+
+## file request
+
+- install multer
+
+  ```
+  npm i multer
+  ```
+
+- install cloudinary
+
+  ```
+  npm i cloudinary
+  ```
+
+- ambil cloud name, api key dan api secret dari dashboard cloudinary (kalau belum punya akun daftar dulu) dan tambahkan ke file .`env`
+
+```
+CLOUD_NAME=<clud name>
+CLOUDINARY_API_KEY=<api key>
+CLOUDINARY_API_SECRET=<api secret>
+```
+
+- buat utils untuk cloudinary dan multer
+
+- buat buat script untuk upload image ke cloudinary mengguakan multer dengan mengimport utils coudinary dan multer yang kita buat tadi
 
 ## Reference
 

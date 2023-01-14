@@ -1,4 +1,3 @@
-const controllers = require(".");
 const models = require("../configs/models/index"); //import model
 const controllerUsers = {}; //assign users controllers
 
@@ -30,8 +29,14 @@ controllerUsers.post = async (req, res) => {
 
 // get all data request
 controllerUsers.getAll = async (req, res) => {
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
   try {
-    const users = await models.users.findAll();
+    const users = await models.users.findAll({
+      include: [{ model: models.projects }],
+    });
     if (users.length > 0) {
       res.status(200).json({
         message: "all user data is obtained",
@@ -52,9 +57,14 @@ controllerUsers.getAll = async (req, res) => {
 
 // get one data request by id
 controllerUsers.getOneById = async (req, res) => {
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
   try {
     const user = await models.users.findAll({
-      where: { user_id: req.params.user_id },
+      include: [{ model: models.projects }],
+      where: { id: req.params.id },
     });
 
     if (user.length > 0) {
@@ -95,7 +105,7 @@ controllerUsers.put = async (req, res) => {
       },
       {
         where: {
-          user_id: req.params.user_id,
+          id: req.params.id,
         },
       }
     );
@@ -115,7 +125,7 @@ controllerUsers.delete = async (req, res) => {
   try {
     const user = await models.users.destroy({
       where: {
-        user_id: req.params.user_id,
+        id: req.params.id,
       },
     });
 
