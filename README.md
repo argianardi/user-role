@@ -1685,7 +1685,7 @@ Sehingga jika kita ingin menghapus data project yang idnya 2 kita bisa melakukan
 
 ### Relasi Table One to Many
 
-Di contoh ini misalnya kita akan membuat relasi one to many untuk table user dan project dimana satu user bisa punya banyak project. Untuk membuat relasi ini kita buat scriptnya dibagian controllers table `users` di file bernama `users.js` yang terletak di folder `controllers` (root/src/controllers) dibagian get all users request dan get one user by id request:
+Di contoh ini misalnya kita akan membuat relasi one to many untuk table user dan project dimana satu user bisa punya banyak project. Untuk membuat relasi ini kita buat scriptnya dibagian controllers table `users` di file bernama `users.js` yang terletak di folder `controllers` (root/src/controllers) dibagian get all users request dan get one user by id request [[3]](https://github.com/argianardi/user-role/blob/associate-datababase/src/controllers/users.js):
 
 ```
 const models = require("../configs/models/index"); //import model
