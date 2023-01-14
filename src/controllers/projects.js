@@ -4,10 +4,10 @@ const controllerProjects = {}; //assign projects controllers (objec of all proje
 // post request
 controllerProjects.post = async (req, res) => {
   // assign request body
-  const { title, description } = req.body;
+  const { title, description, user_id } = req.body;
 
   // check if req.body is null return status 400 and a message
-  if (!(title && description)) {
+  if (!(title && description && user_id)) {
     return res.status(400).json({
       message: "Some input are required",
     });
@@ -18,6 +18,7 @@ controllerProjects.post = async (req, res) => {
     const project = await models.projects.create({
       title: title,
       description: description,
+      user_id: user_id,
     });
     res.status(201).json({
       message: "The project added successfully",
