@@ -1,21 +1,28 @@
 const models = require("../configs/models/index"); //import model
 const controllerUsers = {}; //assign users controllers
+const bcrypt = require("bcrypt");
 
 // post request
 controllerUsers.post = async (req, res) => {
   // assign reques body
-  const { username, password } = req.body;
-  if (!(username && password)) {
+  const { username, password, email, role } = req.body;
+  if (!(username && password && email && role)) {
     return res.status(400).json({
       message: "Some input are required",
     });
   }
 
+  // bcrypt
+  const salt = bcrypt.genSaltSync(10);
+  const passwordHashed = await bcrypt.hashSync(password, salt);
+
   // post request use sequelizes
   try {
     const users = await models.users.create({
-      username: username,
-      password: password,
+      username,
+      password: passwordHashed,
+      email,
+      role,
     });
     res.status(201).json({
       message: "The user added successfully",
@@ -88,20 +95,25 @@ controllerUsers.getOneById = async (req, res) => {
 // Put request
 controllerUsers.put = async (req, res) => {
   // body request
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
 
   // check the body req if null return status 400 and a message
-  if (!(username && password)) {
+  if (!(username && password && email)) {
     return res.status(400).json({
       message: "Some input are request",
     });
   }
 
+  // bcrypt
+  const salt = await bcrypt.genSaltSync(10);
+  const passwordHashed = bcrypt.hashSync(password, salt);
+
   try {
     const user = await models.users.update(
       {
-        username: username,
-        password: password,
+        username,
+        password: passwordHashed,
+        email,
       },
       {
         where: {
