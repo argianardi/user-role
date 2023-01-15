@@ -18,8 +18,17 @@ const users = db.define("users", {
     unique: "username",
   },
 
-  // Column-3, password
+  // Column-3, email
+  email: {
+    type: Sequelize.STRING(225),
+    allowNull: false,
+  },
+
+  // Column-4, password
   password: { type: Sequelize.STRING(225), allowNull: false },
+
+  // Column-5, role
+  role: { type: Sequelize.STRING(225), allowNull: false },
 
   // Timestamps
   createdAt: Sequelize.DATE,
