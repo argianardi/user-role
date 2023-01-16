@@ -15,13 +15,13 @@ const users = db.define("users", {
   username: {
     type: Sequelize.STRING(225),
     allowNull: false,
-    unique: "username",
   },
 
   // Column-3, email
   email: {
     type: Sequelize.STRING(225),
     allowNull: false,
+    unique: "email",
   },
 
   // Column-4, password
