@@ -1,3 +1,24 @@
+## Foldering
+
+```
+project/
+├─ client/
+│  ├─ public/
+│  └─ src/
+│     ├─ components/
+│     ├─ pages/
+│     └─ App.js
+├─ server/
+│  └─ config/
+|     ├─ models/
+|     └─ database/
+│  ├─ controllers/
+│  ├─ routes/
+│  └─ index.js
+├─ package.json
+└─ README.md
+```
+
 ## Persiapan project
 
 Terdapat beberapa hal yang harus kita siapkan sebelum membuat project:
@@ -1878,6 +1899,488 @@ Hasilnya saat kita melakukan get request all users dengan url `http://localhost:
 
 Terlihat dibagian object data terdapat key project yang berisi data lebih dari satu projects, artinya kita telah berhasil melakukan associate relasi one to manyo untuk table users ke table projects. Dan saat kita melakukan get one user by id hasilnya juga akan sama.
 
+## Authentication Dan Authorization
+
+### Pengertian Authentication dan Authorization
+
+Istilah authentication dan authorization biasa digunakan pada security, terutama pada saat mendapatkan izin untuk mengakes suatu sistem. Walaupun terdengar mirip, kedua istilah tersebut berbeda antara satu dan yang lainnya. Authentication berarti mengkomfirmasi identitas sedangkan authorization berarti memberikan akses ke sistem [[6]](https://medium.com/@nandazmann/authentication-dan-authorization-5ef8eb06d1c2).
+
+Autentikasi adalah proses verikfikasi bahwa data user sudah tergabung/terdaftar dalam database/sistem atau tidak. Jadi sistem akan melakukan pengecekan data user (misalnya username, password ataupun email) apakah ada di dalam data base atau tidak. Contohnya saat memasuki ATM setelah memasukan kartu ATM, mesin akan meminta pin dan apabila benar maka bank akan mengkonfirmasi identitas pemilik kartu. Dengan memvalidasi pin kartu ATM, bank sebenernya mengverifikasi identitas pemilik kartu yang disebut authentication [[6]](https://medium.com/@nandazmann/authentication-dan-authorization-5ef8eb06d1c2).
+
+Authorization adalah proses untuk menentukan apakah user yang sudah authenticated mempunyai akses ke bagian tertentu [[6]](https://medium.com/@nandazmann/authentication-dan-authorization-5ef8eb06d1c2). Hal ini mengverifikasi hak kita untuk mengakses sumber seperti informasi, database, files dan lain lain. Contohnya misalnya di dalam sebuah rumah, jika kita sebagai tuan rumah makan kita bisa masuk ke seluruh ruangan di dalam rumah tersebut, tetapi jika kita hanya sebagai tamu maka kita hanya bisa masuk sampai ke ruang tamu saja.
+
+### Mengamankan Password menggunakan Bcrypt
+
+Bycript Digunakan untuk mengamankan password di mana password yang diinputkan user akan diubah menjadi hash yatu combinasi character yang dirandom, contohnya seperti ini:
+
+```
+$2a$10$b9ZLeHb8O7TxLm94v0HRM.Gy1aPSGXydwf/etBm6Ix9GF4HH5Lubm
+```
+
+Tujuan dari penggunaan bcrypt ini agar password yang diinputkan user ini agar bisa lebih aman. Untuk bisa menggunakannya kita harus menginstallnya terlebih dahulu, dengan command:
+
+```
+npm i bcrypt
+```
+
+Untuk mengaplikaskan bcrypt ini dapat kita lakukan di bagian controller di folder `controllers` (root/src/controllers) tepatnya untuk post dan put request. Di contoh ini kita akan menerapkan bcrypt untuk mengenkripsi password dari user di file `users.js` yang tersiman di folder src/controllers/user.js [[3]](https://github.com/argianardi/user-role/blob/auth/src/controllers/users.js):
+
+```
+const models = require("../configs/models/index"); //import model
+const controllerUsers = {}; //assign users controllers
+//-------------------------------------------------------------------------------------
+const bcrypt = require("bcrypt");
+//-------------------------------------------------------------------------------------
+
+// post request
+controllerUsers.post = async (req, res) => {
+  // assign reques body
+  const { username, password, email, role } = req.body;
+  if (!(username && password && email && role)) {
+    return res.status(400).json({
+      message: "Some input are required",
+    });
+  }
+
+//-------------------------------------------------------------------------------------
+  // bcrypt
+  const salt = await bcrypt.genSaltSync(10);
+  const passwordHashed = bcrypt.hashSync(password, salt);
+//-------------------------------------------------------------------------------------
+
+  // post request use sequelizes
+  try {
+    const users = await models.users.create({
+      username,
+      password: passwordHashed,
+      email,
+      role,
+    });
+    res.status(201).json({
+      message: "The user added successfully",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get all data request
+controllerUsers.getAll = async (req, res) => {
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
+  try {
+    const users = await models.users.findAll({
+      include: [{ model: models.projects }],
+    });
+    if (users.length > 0) {
+      res.status(200).json({
+        message: "all user data is obtained",
+        data: users,
+      });
+    } else {
+      res.status(200).json({
+        message: "Users not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// get one data request by id
+controllerUsers.getOneById = async (req, res) => {
+  await models.users.hasMany(models.projects, {
+    sourceKey: "id", //id belong to users table
+    foreignKey: { name: "user_id", allowNull: true }, //user_id belong to projects table
+  });
+  try {
+    const user = await models.users.findAll({
+      include: [{ model: models.projects }],
+      where: { id: req.params.id },
+    });
+
+    if (user.length > 0) {
+      res.status(200).json({
+        message: "The user data is obtained",
+        data: user,
+      });
+    } else {
+      res.status(200).json({
+        message: "The User not found",
+        data: [],
+      });
+    }
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Put request
+controllerUsers.put = async (req, res) => {
+  // body request
+  const { username, password, email } = req.body;
+
+  // check the body req if null return status 400 and a message
+  if (!(username && password && email)) {
+    return res.status(400).json({
+      message: "Some input are request",
+    });
+  }
+
+  //-------------------------------------------------------------------------------------
+  // bcrypt
+  const salt = await bcrypt.genSaltSync(10);
+  const passwordHashed = bcrypt.hashSync(password, salt);
+  //-------------------------------------------------------------------------------------
+
+  try {
+    const user = await models.users.update(
+      {
+        username,
+        password: passwordHashed,
+        email,
+      },
+      {
+        where: {
+          id: req.params.id,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "User data successfully updated",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// Delete request
+controllerUsers.delete = async (req, res) => {
+  try {
+    const user = await models.users.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.status(200).json({
+      message: "User data has been successfully deleted",
+    });
+  } catch (error) {
+    res.status(404).json({
+      message: error.message,
+    });
+  }
+};
+
+// export users controllers
+module.exports = controllerUsers;
+```
+
+Di code diatasi kita melakukan:
+
+- import bcrypt
+- Membuat salt dengan command:
+
+  ```
+  const salt = await bcrypt.genSaltSync(10);
+  ```
+
+- Mengubah value password menjadi salt menggunakan command:
+
+  ```
+  const passwordHashed = bcrypt.hashSync(password, salt);
+  ```
+
+Dalam kriptografi, salt yang terdiri bit acak yang digunakan sebagai salah satu masukan untuk kunci fungsi turunan. Masukan lain biasanya password. Keluaran dari fungsi kunci turunannya disimpan sebagai password versi dienkripsi. Sebuah salt juga dapat digunakan sebagai bagian dari kunci dalam memecahkan algoritme kriptografi atau lainnya.
+
+Hasilnya jika kita lihat menggunakan get request value password user akan berubah menjadi hash seperti ini:
+
+```
+{
+    "message": "all user data is obtained",
+    "data": [
+        {
+            "id": 4,
+            "username": "sarinah edit",
+            "email": "sarinah@mail.com",
+            "password": "$2b$10$3aDlOn9pBoXtmN4ii1owkOwAU.wsTViilRzJ1KhPsX5ImatnPJhCq",
+            "role": "admin",
+            "createdAt": "2023-01-15T18:37:33.000Z",
+            "updatedAt": "2023-01-15T18:43:09.000Z",
+            "projects": []
+        },
+        {
+            "id": 5,
+            "username": "rukijan",
+            "email": "sarinah@mail.com",
+            "password": "$2b$10$ceD8cTaV.pTnCxGn/wyyP.RMGYSdJM7LzSwxXujFbJh5HMPrFPXtu",
+            "role": "admin",
+            "createdAt": "2023-01-15T18:43:34.000Z",
+            "updatedAt": "2023-01-15T18:43:34.000Z",
+            "projects": []
+        }
+    ]
+}
+```
+
+### JWT Auth
+
+- Untuk membuat authentication dan authorization kita akan menggunakan JWT(json web token). JWT (JSON Web Token) adalah sebuah tool yang berfungsi untuk memberikan token, yiatu kode-kode enkripsi unik ketika data dimasukkan atau dibutuhkan.Untuk bisa menggunakannya kita harus menginstallnya terlebih dahulu, dengan command:
+
+  ```
+  npm i jsonwebtoken
+  ```
+
+- Selanjutnya buat variabale misalnya kita namai `JWT_SECRET_KEY` di dalam file .`env` dengan value apapun. Untuk membuat value secret tersebut kita bisa memanfaatkan webiste [keygen.io](https://keygen.io/) untuk mendapatkan kombinasi karakter random.
+
+  ```
+  PORT=2025
+  DB_HOST=localhost
+  DB_USERNAME=root
+  DB_PASSWORD=zero
+  DB_NAME=table_relation
+  JWT_SECRET_KEY=b117faeadf2046d864963aa99d2ca664d1622f7ea149b208bb7102d40146788ca30b162bc18aef1176f6eadf4d309244351d6fe3b0c495c70f5a303171cead20
+  ```
+
+  Kemudian kita ke file entry point project kita yaitu `index.js`(root/src/index.js), kita buat function router untuk login dan register [[3]]().
+
+  ```
+  const express = require("express");
+  const bodyParser = require("body-parser");
+  const compression = require("compression");
+  const helmet = require("helmet");
+  const cors = require("cors");
+  require("dotenv").config();
+  const usersRoutes = require("./routes/users");
+  const projectsRoutes = require("./routes/projects");
+  const authRoutes = require("./routes/auth");
+
+  //initialize express
+  const app = express();
+
+  // use package
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(bodyParser.json());
+  app.use(cors());
+  app.use(helmet());
+  app.use(compression());
+
+  // Routes
+  app.use("/users", usersRoutes);
+  app.use("/projects", projectsRoutes);
+  //-----------------------------------------------------
+  app.use("/", authRoutes);
+  //-----------------------------------------------------
+
+  // server listening
+  const PORT = process.env.PORT || 6022;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+
+  ```
+
+- Selanjutnya buat controller untuk auth di bagian controllers yaitu di folder `controllers` (root/src/controllers) dalam file baru benama `auth.js` [[3]]().
+
+  ```
+  const models = require("../configs/models/index"); //import model
+  const controllersAuth = {}; //assign users controllers
+  const bcrypt = require("bcrypt");
+  const jwt = require("jsonwebtoken");
+
+  controllersAuth.login = async (req, res) => {
+    // assign reques body
+    const { email, password } = req.body;
+    if (!(email && password)) {
+      return res.status(400).json({
+        message: "Some input are required",
+      });
+    }
+
+    try {
+      const user = await models.users.findAll({
+        where: { email },
+      });
+      if (user.length > 0) {
+        const comparePassword = bcrypt.compareSync(password, user[0].password);
+        if (comparePassword) {
+          const secret = process.env.JWT_SECRET_KEY || "secret";
+          const token = jwt.sign({ id: user[0].id, role: user[0].role }, secret, {
+            expiresIn: "2h",
+          });
+
+          if (token) {
+            res.status(200).json({
+              success: true,
+              message: "Login success",
+              data: {
+                token: token,
+                username: user[0].username,
+                email: user[0].email,
+                role: user[0].role,
+              },
+            });
+          }
+        } else {
+          res.status(404).json({
+            success: false,
+            message: "Password doesn't match",
+          });
+        }
+      } else {
+        res.status(404).json({
+          success: false,
+          message: "The User not registered!!",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "500 internet server error",
+      });
+    }
+  };
+
+  controllersAuth.register = async (req, res) => {
+    const { username, password, email, role } = req.body;
+    if (!(username && password && email && role)) {
+      return res.status(400).json({
+        message: "Some input are required",
+      });
+    }
+
+    const users = await models.users.findAll({
+      where: { email },
+    });
+    console.log(users);
+    if (users.length > 0) {
+      return res
+        .status(201)
+        .json({ message: "The email is already registered!!" });
+    } else {
+      // bcrypt
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHashed = await bcrypt.hashSync(password, salt);
+
+      // post request use sequelizes
+      try {
+        const users = await models.users.create({
+          username,
+          password: passwordHashed,
+          email,
+          role,
+        });
+        res.status(201).json({
+          message: "The user added successfully",
+        });
+      } catch (error) {
+        res.status(404).json({
+          message: error.message,
+        });
+      }
+    }
+  };
+
+  module.exports = controllersAuth;
+  ```
+
+- Selanjutnya buat router untuk auth (login dan register) di bagian router yaitu di folder `routers` (root/src/routes) dalam file baru benama `auth.js` [[3]]().
+
+  ```
+  const express = require("express");
+  const router = express.Router();
+  const controllers = require("../controllers/index");
+
+  router.post("/login", controllers.auth.login);
+  router.post("/register", controllers.auth.register);
+
+  module.exports = router;
+  ```
+
+- Selanjutnya kita buat middleware untuk auth dengan file bernama validateAuth.js di folder `middlewares` (root/src/middlewares) dan function untuk authorization caranya sama seperti funciton authenticate, bedanya di dalamnya kita logic untuk mengatur hak aksess pada setiap role
+
+  ```
+  const jwt = require("jsonwebtoken");
+
+  //Authenticate
+  const validateAuth = {
+    isAuthenticated(req, res, next) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const verifiedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        if (verifiedToken) {
+          next();
+        }
+      } catch (errror) {
+        res.status(401).json({
+          message: "Access token invalid",
+        });
+      }
+    },
+
+  //authorization
+    isAdmin(req, res, next) {
+      const token = req.headers.authorization.split(" ")[1];
+      const verifiedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      const role = verifiedToken.role;
+      if (role === "admin") {
+        next();
+      } else {
+        res.status(401).json({
+          message: "Access denied!",
+        });
+      }
+    },
+  };
+
+  module.exports = validateAuth;
+  ```
+
+- Tambahkan middlewaren auth yang kita buat tadi ke bagian route fitur kita (di contoh ini project) untuk mengaplikasikan authenticate dan authorization. Buka file routes fitur project (src/routes/projects.js).
+
+  ```
+  const express = require("express"); //import express
+  const router = express.Router(); //include express router
+  const controllers = require("../controllers/index"); //import projects controllers
+  const validateAuth = require("../middlewares/validateAuth");
+
+  const auth = [validateAuth.isAuthenticated, validateAuth.isAdmin];
+
+  // post request
+  router.post("/", auth, controllers.projects.post);
+
+  // get request all data
+  router.get("/", validateAuth.isAuthenticated, controllers.projects.getAll);
+
+  // get request one data by id
+  router.get(
+    "/:id",
+    validateAuth.isAuthenticated,
+    controllers.projects.getOneById
+  );
+
+  //  put request
+  router.put("/:id", auth, controllers.projects.put);
+
+  // delete request
+  router.delete("/:id", auth, controllers.projects.delete);
+
+  module.exports = router;
+  ```
+
 ## NOTES
 
 - Saat melakukan configurasi database dan table menggunakan `sequelize`, kita juga harus mengimport routes di file entry point project kita(`index.js`), minimal salah satu route table yang kita buat seperti ini:
@@ -1950,3 +2453,4 @@ CLOUDINARY_API_SECRET=<api secret>
 - [[3] github.com/argianardi/user-role](https://github.com/argianardi/user-role)
 - [[4] Programmer Copy Paste](https://www.youtube.com/@ProgrammerCopyPaste)
 - [[5] medium.com/chevalier-lab](https://medium.com/chevalier-lab/restful-api-node-js-express-mysql-dengan-model-controller-373003a0887b)
+- [[6] medium.com/@nandazmann](https://medium.com/@nandazmann/authentication-dan-authorization-5ef8eb06d1c2)
