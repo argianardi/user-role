@@ -1,13 +1,18 @@
 const models = require("../configs/models/index"); //import model
 const controllerProjects = {}; //assign projects controllers (objec of all projects controllers)
+const jwt = require("jsonwebtoken");
 
 // post request
 controllerProjects.post = async (req, res) => {
+  const token = req.headers.authorization.split(" ")[1];
+  const verifiedToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+  const user_id = verifiedToken.id;
+
   // assign request body
-  const { title, description, user_id } = req.body;
+  const { title, description } = req.body;
 
   // check if req.body is null return status 400 and a message
-  if (!(title && description && user_id)) {
+  if (!(title && description)) {
     return res.status(400).json({
       message: "Some input are required",
     });
